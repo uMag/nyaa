@@ -18,21 +18,14 @@ from markupsafe import escape as escape_markup
 from urllib.parse import urlencode, unquote as unquote_url
 from hashlib import md5
 
-if app.config['USE_MYSQL']:
-    from sqlalchemy.dialects import mysql
-    BinaryType = mysql.BINARY
-    DescriptionTextType = mysql.TEXT
-    MediumBlobType = mysql.MEDIUMBLOB
-    COL_UTF8_GENERAL_CI = 'utf8_general_ci'
-    COL_UTF8MB4_BIN = 'utf8mb4_bin'
-    COL_ASCII_GENERAL_CI = 'ascii_general_ci'
+if app.config['USE_PGSQL']:
+    from sqlalchemy.dialects import postgresql
+    BinaryType = postgresql.BYTEA
+    TextType = postgresql.TEXT
 else:
     BinaryType = db.Binary
-    DescriptionTextType = db.String
-    MediumBlobType = db.BLOB
-    COL_UTF8_GENERAL_CI = 'NOCASE'
-    COL_UTF8MB4_BIN = None
-    COL_ASCII_GENERAL_CI = 'NOCASE'
+    TextType = db.String
+
 
 
 # For property timestamps
@@ -101,13 +94,12 @@ class TorrentBase(DeclarativeHelperBase):
 
     id = db.Column(db.Integer, primary_key=True)
     info_hash = db.Column(BinaryType(length=20), unique=True, nullable=False, index=True)
-    display_name = db.Column(db.String(length=255, collation=COL_UTF8_GENERAL_CI),
-                             nullable=False, index=True)
+    display_name = db.Column(db.String(length=255), nullable=False, index=True)
     torrent_name = db.Column(db.String(length=255), nullable=False)
     information = db.Column(db.String(length=255), nullable=False)
-    description = db.Column(DescriptionTextType(collation=COL_UTF8MB4_BIN), nullable=False)
+    description = db.Column(TextType, nullable=False)
 
-    filesize = db.Column(db.BIGINT, default=0, nullable=False, index=True)
+    filesize = db.Column(db.BigInteger, default=0, nullable=False, index=True)
     encoding = db.Column(db.String(length=32), nullable=False)
     flags = db.Column(db.Integer, default=0, nullable=False, index=True)
 
@@ -269,14 +261,12 @@ class TorrentBase(DeclarativeHelperBase):
 class TorrentFilelistBase(DeclarativeHelperBase):
     __tablename_base__ = 'torrents_filelist'
 
-    __table_args__ = {'mysql_row_format': 'COMPRESSED'}
-
     @declarative.declared_attr
     def torrent_id(cls):
         fk = db.ForeignKey(cls._table_prefix('torrents.id'), ondelete="CASCADE")
         return db.Column(db.Integer, fk, primary_key=True)
 
-    filelist_blob = db.Column(MediumBlobType, nullable=True)
+    filelist_blob = db.Column(BinaryType, nullable=True)
 
     @declarative.declared_attr
     def torrent(cls):
@@ -287,13 +277,11 @@ class TorrentFilelistBase(DeclarativeHelperBase):
 class TorrentInfoBase(DeclarativeHelperBase):
     __tablename_base__ = 'torrents_info'
 
-    __table_args__ = {'mysql_row_format': 'COMPRESSED'}
-
     @declarative.declared_attr
     def torrent_id(cls):
         return db.Column(db.Integer, db.ForeignKey(
             cls._table_prefix('torrents.id'), ondelete="CASCADE"), primary_key=True)
-    info_dict = db.Column(MediumBlobType, nullable=True)
+    info_dict = db.Column(BinaryType, nullable=True)
 
     @declarative.declared_attr
     def torrent(cls):
@@ -323,7 +311,7 @@ class Trackers(db.Model):
     __tablename__ = 'trackers'
 
     id = db.Column(db.Integer, primary_key=True)
-    uri = db.Column(db.String(length=255, collation=COL_UTF8_GENERAL_CI),
+    uri = db.Column(db.String(length=255),
                     nullable=False, unique=True)
     disabled = db.Column(db.Boolean, nullable=False, default=False)
 
@@ -426,7 +414,7 @@ class CommentBase(DeclarativeHelperBase):
         return db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
 
     created_time = db.Column(db.DateTime(timezone=False), default=datetime.utcnow)
-    text = db.Column(db.String(length=255, collation=COL_UTF8MB4_BIN), nullable=False)
+    text = db.Column(db.String(length=255), nullable=False)
 
     @declarative.declared_attr
     def user(cls):
@@ -459,9 +447,9 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(length=32, collation=COL_ASCII_GENERAL_CI),
+    username = db.Column(db.String(length=32),
                          unique=True, nullable=False)
-    email = db.Column(EmailType(length=255, collation=COL_ASCII_GENERAL_CI),
+    email = db.Column(EmailType(length=255),
                       unique=True, nullable=True)
     password_hash = db.Column(PasswordType(max_length=255, schemes=['argon2']), nullable=False)
     status = db.Column(ChoiceType(UserStatusType, impl=db.Integer()), nullable=False)
@@ -632,7 +620,8 @@ class SukebeiTorrent(TorrentBase, db.Model):
 
 
 # Fulltext models for MySQL
-if app.config['USE_MYSQL']:
+# if app.config['USE_MYSQL']:
+if False:
     class NyaaTorrentNameSearch(FullText, NyaaTorrent):
         __fulltext_columns__ = ('display_name',)
         __table_args__ = {'extend_existing': True}

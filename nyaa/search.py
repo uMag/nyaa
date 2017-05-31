@@ -295,7 +295,7 @@ def search_db(term='', user=None, sort='id', order='desc', category='0_0',
         if not admin:
             # Hide all DELETED torrents if regular user
             qpc.filter(models.Torrent.flags.op('&')(
-                int(models.TorrentFlags.DELETED)).is_(False))
+                int(models.TorrentFlags.DELETED)) == 0)
             # If logged in user is not the same as the user being viewed,
             # show only torrents that aren't hidden or anonymous
             #
@@ -306,23 +306,23 @@ def search_db(term='', user=None, sort='id', order='desc', category='0_0',
             # show only torrents that aren't hidden or anonymous no matter what
             if not same_user or rss:
                 qpc.filter(models.Torrent.flags.op('&')(
-                    int(models.TorrentFlags.HIDDEN | models.TorrentFlags.ANONYMOUS)).is_(False))
+                    int(models.TorrentFlags.HIDDEN | models.TorrentFlags.ANONYMOUS)) == 0)
     # General view (homepage, general search view)
     else:
         if not admin:
             # Hide all DELETED torrents if regular user
             qpc.filter(models.Torrent.flags.op('&')(
-                int(models.TorrentFlags.DELETED)).is_(False))
+                int(models.TorrentFlags.DELETED)) == 0)
             # If logged in, show all torrents that aren't hidden unless they belong to you
             # On RSS pages, show all public torrents and nothing more.
             if logged_in_user and not rss:
                 qpc.filter(
-                    (models.Torrent.flags.op('&')(int(models.TorrentFlags.HIDDEN)).is_(False)) |
+                    (models.Torrent.flags.op('&')(int(models.TorrentFlags.HIDDEN)) == 0) |
                     (models.Torrent.uploader_id == logged_in_user.id))
             # Otherwise, show all torrents that aren't hidden
             else:
                 qpc.filter(models.Torrent.flags.op('&')(
-                    int(models.TorrentFlags.HIDDEN)).is_(False))
+                    int(models.TorrentFlags.HIDDEN)) == 0)
 
     if main_category:
         qpc.filter(models.Torrent.main_category_id == main_cat_id)

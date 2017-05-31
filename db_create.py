@@ -14,7 +14,7 @@ NYAA_CATEGORIES = [
 
 
 SUKEBEI_CATEGORIES = [
-    ('Art', ['Anime', 'Doujinshi', 'Games', 'Manga', 'Pictures']),
+    ('Art', ['Anime', 'Doujinshi', 'Games', 'Manga', 'Pictures', 'Audio']),
     ('Real Life', ['Photobooks / Pictures', 'Videos']),
 ]
 
@@ -30,11 +30,12 @@ def add_categories(categories, main_class, sub_class):
 
 if __name__ == '__main__':
     # Test for the user table, assume db is empty if it's not created
-    database_empty = False
-    try:
-        models.User.query.first()
-    except (sqlalchemy.exc.ProgrammingError, sqlalchemy.exc.OperationalError):
-        database_empty = True
+    # Dummied out because it breaks with PostgreSQL for some reason.
+    database_empty = True
+    #try:
+    #    models.User.query.first()
+    #except (sqlalchemy.exc.ProgrammingError, sqlalchemy.exc.OperationalError):
+    #    database_empty = True
 
 
     print('Creating all tables...')
